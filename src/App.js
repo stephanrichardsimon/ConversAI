@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import axios from "axios";
 import { Box, Button, Grid, TextField, Typography } from "@mui/material";
 
 const App = () => {
   const [conversation, setConversation] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [inputText, setInputText] = useState("");
   const recognitionRef = useRef(null);
 
   const startRecognition = () => {
+    if (isLoading) return;
+
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -20,7 +21,9 @@ const App = () => {
     };
 
     recognition.onend = () => {
-      recognition.start();
+      if (recognitionRef.current && !isLoading) {
+        recognition.start();
+      }
     };
 
     recognitionRef.current = recognition;
@@ -30,6 +33,7 @@ const App = () => {
   const stopRecognition = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
   };
 
@@ -95,21 +99,12 @@ const App = () => {
       return acc;
     }, []);
 
-    chunks.forEach((chunk, index) => {
+    chunks.forEach((chunk) => {
       const utterance = new SpeechSynthesisUtterance(chunk.trim());
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-      utterance.onend = () => {
-        if (index === chunks.length - 1) {
-          setIsSpeaking(false);
-        }
-      };
+
       window.speechSynthesis.speak(utterance);
     });
   };
-
-  useEffect(() => {}, [isSpeaking]);
 
   const handleInputChange = (event) => {
     setInputText(event.target.value);
@@ -146,7 +141,6 @@ const App = () => {
           ))}
         </Grid>
       </Grid>
-
       <Grid
         item
         xs={12}
